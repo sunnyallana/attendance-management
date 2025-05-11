@@ -1,4 +1,4 @@
-// models/User.js
+// models/User.js (updated)
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
@@ -41,10 +41,21 @@ const userSchema = new mongoose.Schema({
     grade: String,
     section: String,
     enrollmentNumber: String,
-    enrollmentDate: Date
+    enrollmentDate: Date,
+    currentClassId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'Class' 
+    },
+    currentSectionId: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'Section' 
+    }
   },
   parentDetails: {
-    children: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+    children: [{ 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: 'User' 
+    }]
   },
   rfidCard: {
     uid: String,

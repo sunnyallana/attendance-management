@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const Organization = require('../models/Organization');
 const User = require('../models/User');
 
-// Create Organization (SuperAdmin only)
+// Create Organization (SuperAdmin only) - Tested via Postman
 router.post('/', auth(['superAdmin']), async (req, res) => {
   try {
     const organization = new Organization(req.body);
@@ -26,7 +26,8 @@ router.get('/', auth(['superAdmin']), async (req, res) => {
   }
 });
 
-// Get Organization by ID
+// Get Organization by ID - Tested via Postman
+// Only admin of the organization and superadmin can view the org
 router.get('/:id', auth(['superAdmin', 'admin']), async (req, res) => {
   try {
     const organization = await Organization.findById(req.params.id);
@@ -43,7 +44,8 @@ router.get('/:id', auth(['superAdmin', 'admin']), async (req, res) => {
   }
 });
 
-// Update Organization
+// Update Organization - Tested via Postman
+// // Only admin of the organization and superad
 router.patch('/:id', auth(['superAdmin', 'admin']), async (req, res) => {
   try {
     const organization = await Organization.findById(req.params.id);
@@ -62,7 +64,7 @@ router.patch('/:id', auth(['superAdmin', 'admin']), async (req, res) => {
   }
 });
 
-// Delete Organization (SuperAdmin only)
+// Delete Organization (SuperAdmin only) - Tested via Postman
 router.delete('/:id', auth(['superAdmin']), async (req, res) => {
   try {
     const organization = await Organization.findByIdAndDelete(req.params.id);

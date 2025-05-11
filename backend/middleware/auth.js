@@ -1,9 +1,17 @@
+// middleware/auth.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const auth = (roles = []) => async (req, res, next) => {
   try {
-    const token = req.header('Authorization').replace('Bearer ', '');
+    // Skip auth for RFID scanning endpoint
+    if (req.path === '/api/attendance/rfid' && req.method === 'POST') {
+      return next();
+    }
+    
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) throw new Error();
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findOne({ _id: decoded._id, isActive: true });
 

@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 
-// Create User (SuperAdmin/Admin)
+// Create User (SuperAdmin/Admin) - Tested via Postman
 router.post('/', auth(['superAdmin', 'admin']), async (req, res) => {
   try {
     const { email, password, role, ...rest } = req.body;
@@ -35,7 +35,7 @@ router.post('/', auth(['superAdmin', 'admin']), async (req, res) => {
   }
 });
 
-// Get Users (with role-based filtering)
+// Get Users (with role-based filtering) - Tested via Postman
 router.get('/', auth(), async (req, res) => {
   try {
     let query = { isActive: true };
@@ -58,7 +58,7 @@ router.get('/', auth(), async (req, res) => {
   }
 });
 
-// Get User by ID
+// Get User by ID - Tested via Postman
 router.get('/:id', auth(), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -81,7 +81,7 @@ router.get('/:id', auth(), async (req, res) => {
   }
 });
 
-// Update User
+// Update User - Tested via Postman
 router.patch('/:id', auth(), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -116,7 +116,7 @@ router.patch('/:id', auth(), async (req, res) => {
   }
 });
 
-// Delete User (actually deactivate)
+// Delete User (actually deactivate) - Tested via Postman
 router.delete('/:id', auth(['superAdmin', 'admin']), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
