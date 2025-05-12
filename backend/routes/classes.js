@@ -1,27 +1,25 @@
-// routes/classes.js
+// Filename: routes/classes.js
+
+
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
 const Class = require('../models/Class');
 const User = require('../models/User');
 
-// Create class (admin/teacher)
-router.post('/', auth(['admin', 'teacher']), async (req, res) => {
+// Create class (Admin Only) - Tested via Postmam
+router.post('/', auth(['admin']), async (req, res) => {
   try {
     const { name, code, gradeLevel, description, startDate, endDate } = req.body;
-    const user = req.user;
-    
-    const classData = {
-      organizationId: user.organizationId,
+    const newClass = new Class({
+      organizationId: req.user.organizationId,
       name,
       code,
       gradeLevel,
       description,
       startDate,
       endDate
-    };
-    
-    const newClass = new Class(classData);
+    });
     await newClass.save();
     res.status(201).json(newClass);
   } catch (error) {
@@ -29,7 +27,7 @@ router.post('/', auth(['admin', 'teacher']), async (req, res) => {
   }
 });
 
-// Get all classes
+// Get all classes (Admin, Teacher, Student) - Tested via Postmam
 router.get('/', auth(), async (req, res) => {
   try {
     const user = req.user;
@@ -54,7 +52,7 @@ router.get('/', auth(), async (req, res) => {
   }
 });
 
-// Get class by ID
+// Get class by ID (Admin, Teacher, Student) - Tested via Postmam
 router.get('/:id', auth(), async (req, res) => {
   try {
     const user = req.user;
@@ -84,73 +82,39 @@ router.get('/:id', auth(), async (req, res) => {
   }
 });
 
-// Update class (admin/teacher)
-router.patch('/:id', auth(['admin', 'teacher']), async (req, res) => {
+// Update class (Admin Only) - Tested via Postmam
+router.patch('/:id', auth(['admin']), async (req, res) => {
   try {
-    const user = req.user;
-    const classObj = await Class.findById(req.params.id);
-    
-    if (!classObj || !classObj.organizationId.equals(user.organizationId)) {
-      return res.status(404).json({ error: 'Class not found' });
-    }
-    
-    // For teachers, verify they teach this class and are primary
-    if (user.role === 'teacher') {
-      const teacherRole = classObj.teachers.find(t => t.teacherId.equals(user._id));
-      if (!teacherRole || !teacherRole.isPrimary) {
-        return res.status(403).json({ error: 'Not primary teacher for this class' });
-      }
-    }
-    
-    Object.assign(classObj, req.body);
-    classObj.updatedAt = new Date();
-    await classObj.save();
+    const classObj = await Class.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { $set: req.body, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!classObj) throw new Error('Class not found');
     res.json(classObj);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
-// Add teacher to class (admin/primary teacher)
-router.post('/:id/teachers', auth(['admin', 'teacher']), async (req, res) => {
+// Add teacher to class (Admin Only) - Tested via Postmam
+router.post('/:id/teachers', auth(['admin']), async (req, res) => {
   try {
     const { teacherId, isPrimary } = req.body;
-    const user = req.user;
-    const classObj = await Class.findById(req.params.id);
-    
-    if (!classObj || !classObj.organizationId.equals(user.organizationId)) {
-      return res.status(404).json({ error: 'Class not found' });
-    }
-    
-    // Verify the teacher exists and belongs to the organization
-    const teacher = await User.findOne({
-      _id: teacherId,
-      organizationId: user.organizationId,
-      role: 'teacher',
-      isActive: true
+    const teacher = await User.findOne({ 
+      _id: teacherId, 
+      organizationId: req.user.organizationId,
+      role: 'teacher'
     });
-    
-    if (!teacher) {
-      return res.status(400).json({ error: 'Teacher not found' });
-    }
-    
-    // For teachers, verify they are primary teacher for this class
-    if (user.role === 'teacher') {
-      const teacherRole = classObj.teachers.find(t => t.teacherId.equals(user._id));
-      if (!teacherRole || !teacherRole.isPrimary) {
-        return res.status(403).json({ error: 'Not primary teacher for this class' });
-      }
-    }
-    
-    // Check if teacher is already in the class
-    const existingTeacher = classObj.teachers.find(t => t.teacherId.equals(teacherId));
-    if (existingTeacher) {
-      return res.status(400).json({ error: 'Teacher already in class' });
-    }
-    
-    classObj.teachers.push({ teacherId, isPrimary: !!isPrimary });
-    await classObj.save();
-    res.json(classObj);
+    if (!teacher) throw new Error('Teacher not found');
+
+    const updatedClass = await Class.findOneAndUpdate(
+      { _id: req.params.id, organizationId: req.user.organizationId },
+      { $addToSet: { teachers: { teacherId, isPrimary } } },
+      { new: true }
+    );
+    if (!updatedClass) throw new Error('Class not found');
+    res.json(updatedClass);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

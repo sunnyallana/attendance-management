@@ -1,4 +1,6 @@
-// index.js
+// Filename: index.js
+
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -10,6 +12,9 @@ const attendanceRoutes = require('./routes/attendance');
 const classRoutes = require('./routes/classes');
 const sectionRoutes = require('./routes/sections');
 const holidayRoutes = require('./routes/holidays');
+const notificationRoutes = require('./routes/notifications');
+const { init } = require('./socket');
+
 
 const app = express();
   
@@ -30,7 +35,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/sections', sectionRoutes);
 app.use('/api/holidays', holidayRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+init(server);

@@ -1,4 +1,6 @@
-// models/HolidayEvent.js
+// Filename: models/HolidayEvent.js
+
+
 const mongoose = require('mongoose');
 
 const holidayEventSchema = new mongoose.Schema({

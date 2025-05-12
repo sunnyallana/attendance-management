@@ -1,4 +1,6 @@
-// models/RFIDScanLog.js
+// Filename: models/RFIDScanLog.js
+
+
 const mongoose = require('mongoose');
 
 const rfidScanLogSchema = new mongoose.Schema({

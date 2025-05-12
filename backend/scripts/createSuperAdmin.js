@@ -1,3 +1,6 @@
+// Filename: scripts/createSuperAdmin.js
+
+
 require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -9,7 +12,7 @@ async function createSuperAdmin() {
     
     const superAdmin = new User({
       email: "superadmin@amp.com",
-      passwordHash: await bcrypt.hash("sunny@amp900", 8),
+      passwordHash: await bcrypt.hash("super@amp", 8),
       firstName: "Super",
       lastName: "Admin",
       role: "superAdmin",

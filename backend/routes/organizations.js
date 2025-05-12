@@ -1,4 +1,6 @@
-// routes/organizations.js
+// Filename: routes/organizations.js
+
+
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -16,7 +18,7 @@ router.post('/', auth(['superAdmin']), async (req, res) => {
   }
 });
 
-// Get All Organizations (SuperAdmin only)
+// Get All Organizations (SuperAdmin only) - Tested via Postman
 router.get('/', auth(['superAdmin']), async (req, res) => {
   try {
     const organizations = await Organization.find();

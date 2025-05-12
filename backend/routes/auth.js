@@ -1,3 +1,6 @@
+// Filename: routes/auth.js
+
+
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
@@ -16,12 +19,20 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
+    // Restrict login to specific roles
+    const allowedRoles = ['superAdmin', 'admin', 'teacher', 'parent'];
+    if (!allowedRoles.includes(user.role)) {
+      return res.status(403).json({ error: 'Login not permitted for your role' });
+    }
+
     const token = jwt.sign({ _id: user._id.toString() }, process.env.JWT_SECRET);
     res.json({ user, token });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
+
+
 
 // Password Reset (Admin only) - Tested via Postman
 router.post('/reset-password', auth(['superAdmin', 'admin']), async (req, res) => {

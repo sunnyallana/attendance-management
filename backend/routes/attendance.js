@@ -1,4 +1,6 @@
-// routes/attendance.js
+// Filename: routes/attendance.js
+
+
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -7,6 +9,8 @@ const User = require('../models/User');
 const Class = require('../models/Class');
 const Section = require('../models/Section');
 const RFIDScanLog = require('../models/RFIDScanLog');
+const socket = require('../socket');
+
 
 // RFID-based attendance marking
 router.post('/rfid', async (req, res) => {
@@ -69,6 +73,39 @@ router.post('/rfid', async (req, res) => {
     }
     
     await attendance.save();
+
+    // Emit notification to parent if student has attendance marked
+    if (user.role === 'student') {
+      const parents = await User.find({
+        'parentDetails.children': user._id,
+        isActive: true
+      });
+
+        // Create notifications
+      const notificationPromises = parents.map(parent => {
+        const notification = new Notification({
+          parentId: parent._id,
+          studentId: user._id,
+          attendanceId: attendance._id,
+          message: `Attendance marked as ${attendance.status} for ${user.firstName} ${user.lastName}`
+        });
+        return notification.save();
+      });
+      
+      await Promise.all(notificationPromises);
+      
+      parents.forEach(parent => {
+        socket.getIO().to(parent._id.toString()).emit('attendanceUpdate', {
+          studentId: user._id,
+          studentName: `${user.firstName} ${user.lastName}`,
+          status: attendance.status,
+          time: new Date(),
+          entryTime: attendance.entryTime,
+          exitTime: attendance.exitTime
+        });
+      });
+    }
+
     res.json({ success: true, attendance });
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -134,6 +171,42 @@ router.post('/manual', auth(['teacher', 'admin']), async (req, res) => {
     }
     
     await attendance.save();
+
+    // Emit notification to parent if student has attendance marked
+    if (req.body.studentId) {
+      const student = await User.findById(req.body.studentId);
+      if (student?.role === 'student') {
+        const parents = await User.find({
+          'parentDetails.children': student._id,
+          isActive: true
+        });
+
+          // Create notifications
+        const notificationPromises = parents.map(parent => {
+          const notification = new Notification({
+            parentId: parent._id,
+            studentId: user._id,
+            attendanceId: attendance._id,
+            message: `Attendance marked as ${attendance.status} for ${user.firstName} ${user.lastName}`
+          });
+          return notification.save();
+        });
+        
+        await Promise.all(notificationPromises);
+        
+        parents.forEach(parent => {
+          socket.getIO().to(parent._id.toString()).emit('attendanceUpdate', {
+            studentId: student._id,
+            studentName: `${student.firstName} ${student.lastName}`,
+            status: attendance.status,
+            time: new Date(),
+            markedBy: `${req.user.firstName} ${req.user.lastName}`,
+            remarks: attendance.remarks
+          });
+        });
+      }
+    }
+
     res.json(attendance);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -282,5 +355,46 @@ router.patch('/:id', auth(['teacher', 'admin']), async (req, res) => {
     res.status(400).json({ error: error.message });
   }
 });
+
+
+// Delete attendance record
+router.delete('/:id', auth(['superAdmin', 'admin', 'teacher']), async (req, res) => {
+  try {
+    const user = req.user;
+    const attendance = await Attendance.findById(req.params.id);
+    
+    if (!attendance) {
+      return res.status(404).json({ error: 'Attendance record not found' });
+    }
+    
+    // Authorization checks
+    if (user.role === 'teacher') {
+      const classes = await Class.find({ 
+        'teachers.teacherId': user._id,
+        status: 'active'
+      });
+      
+      const isStudentInClass = classes.some(cls => 
+        cls._id.equals(attendance.classId)
+      );
+      
+      if (!isStudentInClass) {
+        return res.status(403).json({ error: 'Student not in your class' });
+      }
+    } else if (user.role === 'admin' && !attendance.organizationId.equals(user.organizationId)) {
+      return res.status(403).json({ error: 'Not in your organization' });
+    }
+    
+    await attendance.deleteOne();
+    
+    // Delete associated notifications
+    await Notification.deleteMany({ attendanceId: attendance._id });
+    
+    res.json({ success: true });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 
 module.exports = router;

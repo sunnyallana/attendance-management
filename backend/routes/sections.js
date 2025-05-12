@@ -1,4 +1,6 @@
-// routes/sections.js
+// Filename: routes/sections.js
+
+
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
@@ -6,8 +8,8 @@ const Section = require('../models/Section');
 const Class = require('../models/Class');
 const User = require('../models/User');
 
-// Create section (admin/teacher)
-router.post('/', auth(['admin', 'teacher']), async (req, res) => {
+// Create section (Admin Only) - Tested via Postman
+router.post('/', auth(['admin']), async (req, res) => {
   try {
     const { classId, name, schedule } = req.body;
     const user = req.user;
@@ -20,14 +22,6 @@ router.post('/', auth(['admin', 'teacher']), async (req, res) => {
     
     if (!classObj) {
       return res.status(404).json({ error: 'Class not found' });
-    }
-    
-    // For teachers, verify they teach this class
-    if (user.role === 'teacher') {
-      const isTeaching = classObj.teachers.some(t => t.teacherId.equals(user._id));
-      if (!isTeaching) {
-        return res.status(403).json({ error: 'Not teaching this class' });
-      }
     }
     
     const section = new Section({
@@ -44,7 +38,7 @@ router.post('/', auth(['admin', 'teacher']), async (req, res) => {
   }
 });
 
-// Get sections for a class
+// Get sections for a class (Admin, Teacher, Student) - Tested via Postman
 router.get('/', auth(), async (req, res) => {
   try {
     const { classId } = req.query;
@@ -85,8 +79,8 @@ router.get('/', auth(), async (req, res) => {
   }
 });
 
-// Add student to section (admin/teacher)
-router.post('/:id/students', auth(['admin', 'teacher']), async (req, res) => {
+// Add student to section (Admin Only) - Tested via Postman
+router.post('/:id/students', auth(['admin']), async (req, res) => {
   try {
     const { studentId } = req.body;
     const user = req.user;
@@ -111,15 +105,6 @@ router.post('/:id/students', auth(['admin', 'teacher']), async (req, res) => {
     // Verify the section's class matches the student's current class
     if (!student.studentDetails?.currentClassId?.equals(section.classId)) {
       return res.status(400).json({ error: 'Student not in this class' });
-    }
-    
-    // For teachers, verify they teach this class
-    if (user.role === 'teacher') {
-      const classObj = await Class.findById(section.classId);
-      const isTeaching = classObj.teachers.some(t => t.teacherId.equals(user._id));
-      if (!isTeaching) {
-        return res.status(403).json({ error: 'Not teaching this class' });
-      }
     }
     
     // Check if student is already in the section

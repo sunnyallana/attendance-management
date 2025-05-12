@@ -1,4 +1,6 @@
-// models/User.js (updated)
+// Filename: models/User.js
+
+
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
